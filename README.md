@@ -1,146 +1,239 @@
-# Cornerstone
-![tests](https://github.com/bigcommerce/cornerstone/workflows/Theme%20Bundling%20Test/badge.svg?branch=master)
+All right here is all I did for this project! It took me an extra day because it was my first time working with bigcommerce and the documentation was difficult to understand sometimes but all done!
 
-Stencil's Cornerstone theme is the building block for BigCommerce theme developers to get started quickly developing premium quality themes on the BigCommerce platform.
+First: created the Special Product and put it into its own category named category-special. I created two files in a custom folder named product-special and category-special to display the new product on the page!
 
-### Stencil Utils
-[Stencil-utils](https://github.com/bigcommerce/stencil-utils) is our supporting library for our events and remote interactions.
+Second:The hover affect:
+I put this in responsive-img.html
+<div id="product-image-switcher">
+    {{#each images}}
+        {{#if @index '==' 0}}
+            <img style="display: flex" src="{{getImage this}}" />
+        {{/if}}
+        {{#if @index '==' 1}}
+            <img style="display: none" src="{{getImage this}}" />
+        {{/if}}
+    {{/each}}
+</div>
+then I added this class method in category.js
+toggleImages(images) {
+  images.forEach((image, i) => {
+      if (image.style.display === 'none') image.style.display = 'flex'
+      else if (image.style.display === 'flex') image.style.display = 'none'
+  })
+}
+and then in the onReady method of category.js I added this
+$('#product-image-switcher').on('mouseenter', e => {
+  const images = document.querySelectorAll('#product-image-switcher > img')
+  this.toggleImages(images)
+})
 
-## JS API
-When writing theme JavaScript (JS) there is an API in place for running JS on a per page basis. To properly write JS for your theme, the following page types are available to you:
+$('#product-image-switcher').on('mouseleave', e => {
+  const images = document.querySelectorAll('#product-image-switcher > img')
+  this.toggleImages(images)
+})
 
-* "pages/account/addresses"
-* "pages/account/add-address"
-* "pages/account/add-return"
-* "pages/account/add-wishlist"
-* "pages/account/recent-items"
-* "pages/account/download-item"
-* "pages/account/edit"
-* "pages/account/return-saved"
-* "pages/account/returns"
-* "pages/account/payment-methods"
-* "pages/auth/login"
-* "pages/auth/account-created"
-* "pages/auth/create-account"
-* "pages/auth/new-password"
-* "pages/blog"
-* "pages/blog-post"
-* "pages/brand"
-* "pages/brands"
-* "pages/cart"
-* "pages/category"
-* "pages/compare"
-* "pages/errors"
-* "pages/gift-certificate/purchase"
-* "pages/gift-certificate/balance"
-* "pages/gift-certificate/redeem"
-* "global"
-* "pages/home"
-* "pages/order-complete"
-* "pages/page"
-* "pages/product"
-* "pages/search"
-* "pages/sitemap"
-* "pages/subscribed"
-* "pages/account/wishlist-details"
-* "pages/account/wishlists"
+I added some styling as well to stop the images from repeating in theme.scss
 
-These page types will correspond to the pages within your theme. Each one of these page types map to an ES6 module that extends the base `PageManager` abstract class.
+Next for the add to cart and remove cart button:
+styling in theme.scss: 
+//add to cart style
+.add-to-cart-button {
+    position: flex;
+    float: right;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #e50914;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
 
-```javascript
-    export default class Auth extends PageManager {
-        constructor() {
-            // Set up code goes here; attach to internals and use internals as you would 'this'
+.remove-all-cart-bttn {
+    display: none;
+    position: flex;
+    float: right;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: #fff;
+    background-color: blue;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
+
+in category.html:
+ <!--Add and Remove to cart buttons-->
+  <button class="add-to-cart-button" id="add-all-to-cart">Add all to cart</button>
+  <button class="remove-all-cart-bttn" id="remove-all-from-cart">Remove All Items</button>
+  
+  
+in category.js for function:
+
+addAllToCart() {
+        // Do not do AJAX if browser doesn't support FormData
+        if (window.FormData === undefined) {
+            return;
         }
+
+        // modal
+        this.$overlay.show()
+      
+        
+        /**
+         * Find all the products on the page
+         */
+        const products = []
+        document.querySelectorAll('[data-product-id]').forEach(product => products.push(product.dataset.productId))
+      
+        /**
+         * Create the form date of all the products
+         */
+        const lineItems = products.map(product => ({
+            quantity: 1,
+            productId: product
+        }))
+      
+        for (const lineItem of lineItems) {
+            const formData = new FormData()
+            formData.append('action', 'add')
+            formData.append('product_id', lineItem.productId)
+            formData.append('quantity[]', 1)
+      
+            utils.api.cart.itemAdd(formData, (err, response) => {
+
+                const errorMessage = err || response.data.error
+
+                if (errorMessage) console.error(errorMessage)
+                
+                this.$overlay.hide()
+            
+                if (this.previewModal) {
+                    this.previewModal.open()
+                    this.updateCartContent(this.previewModal, response.data.cart_item.id)
+                }
+    
+            })
+        }
+        
     }
-```
-
-### JS Template Context Injection
-Occasionally you may need to use dynamic data from the template context within your client-side theme application code.
-
-Two helpers are provided to help achieve this.
-
-The inject helper allows you to compose a JSON object with a subset of the template context to be sent to the browser.
-
-```
-{{inject "stringBasedKey" contextValue}}
-```
-
-To retrieve the parsable JSON object, just call `{{jsContext}}` after all of the `{{@inject}}` calls.
-
-For example, to setup the product name in your client-side app, you can do the following if you're in the context of a product:
-
-```html
-{{inject "myProductName" product.title}}
-
-<script>
-// Note the lack of quotes around the jsContext handlebars helper, it becomes a string automatically.
-var jsContext = JSON.parse({{jsContext}}); // jsContext would output "{\"myProductName\": \"Sample Product\"}" which can feed directly into your JavaScript
-
-console.log(jsContext.myProductName); // Will output: Sample Product
-</script>
-```
-
-You can compose your JSON object across multiple pages to create a different set of client-side data depending on the currently loaded template context.
-
-The stencil theme makes the jsContext available on both the active page scoped and global PageManager objects as `this.context`.
-
-## Polyfilling via Feature Detection
-Cornerstone implements [this strategy](https://philipwalton.com/articles/loading-polyfills-only-when-needed/) for polyfilling.
-
-In `templates/components/common/polyfill-script.html` there is a simple feature detection script which can be extended to detect any recent JS features you intend to use in your theme code.
-
-If any one of the conditions is not met, an additional blocking JS bundle configured in `assets/js/polyfills.js` will be loaded to polyfill modern JS features before the main bundle executes. 
-
-This intentionally prioritizes the experience of the 90%+ of shoppers who are on modern browsers in terms of performance, while maintaining compatibility (at the expense of additional JS download+parse for the polyfills) for users on legacy browsers.
-
-## Static assets
-Some static assets in the Stencil theme are handled with Grunt if required. This
-means you have some dependencies on grunt and npm. To get started:
-
-First make sure you have Grunt installed globally on your machine:
-
-```
-npm install -g grunt-cli
-```
-
-and run:
-
-```
-npm install
-```
-
-Note: package-lock.json file was generated by Node version 10 and npm version 6.11.3. The app supports Node 10 as well as multiple versions of npm, but we should always use those versions when updating package-lock.json, unless it is decided to upgrade those, and in this case the readme should be updated as well. If using a different version for node OR npm, please delete the package-lock.json file prior to installing node packages and also prior to pushing to github.
-
-If updating or adding a dependency, please double check that you are working on Node version 10 and npm version 6.11.3 and run ```npm update <package_name>```  or ```npm install <package_name>``` (avoid running npm install for updating a package). After updating the package, please make sure that the changes in the package-lock.json reflect only the updated/new package prior to pushing the changes to github.
+      
+      //remove all from cart function
+     
+      removeAllFromCart() {
+        utils.api.cart.getCartSummary({} , (err, response) => {
+            if (err) console.error(err)
+            
+            const { id } = response
+      
+            fetch(`/api/storefront/carts/${id}`, {
+                method: 'DELETE'
+            }).then(async res => {
+                console.log(res)
+            })
+        })
+      }
+      
+      and on the OnReady() function lower down the page
+       /* add to cart button */
+         
+        $('#add-all-to-cart').on('click', () => {
+         this.addAllToCart()
+         })
 
 
-### Icons
-Icons are delivered via a single SVG sprite, which is embedded on the page in
-`templates/layout/base.html`. It is generated via a grunt task `grunt svgstore`.
+         // remove from cart
+        $('#remove-all-from-cart').on('click', () => {
+          this.removeAllFromCart()
+          
+         })
+    }
 
-The task takes individual SVG files for each icon in `assets/icons` and bundles
-them together, to be inlined on the top of the theme, via an ajax call managed
-by svg-injector. Each icon can then be called in a similar way to an inline image via:
+So then i wanted the user to know their item was added to cart so I made it so instead of an alert it pulls up the Modal that is in the product page when you buy an item
 
-```
-<svg><use xlink:href="#icon-svgFileName" /></svg>
-```
+i had to add this to category.html to get the modal to show on the page 
 
-The ID of the SVG icon you are calling is based on the filename of the icon you want,
-with `icon-` prepended. e.g. `xlink:href="#icon-facebook"`.
+<!--modal feature-->
+  <div id="previewModal" class="modal modal--large" data-reveal>
+    {{> components/common/modal/modal-close-btn }}
+    <div class="modal-content"></div>
+    <div class="loadingOverlay"></div>
+  </div>
 
-Simply add your new icon SVG file to the icons folder, and run `grunt svgstore`,
-or just `grunt`.
+add this snippet to addAlltoCart:
+ this.$overlay.hide()
+            
+                if (this.previewModal) {
+                    this.previewModal.open()
+                    this.updateCartContent(this.previewModal, response.data.cart_item.id)
+                }
+I had to import two functions also
 
-#### License
+getCartContent(cartItemId, onComplete) {
+        const options = {
+            template: 'cart/preview',
+            params: {
+                suggest: cartItemId,
+            },
+            config: {
+                cart: {
+                    suggestions: {
+                        limit: 4,
+                    },
+                },
+            },
+        };
 
-(The MIT License)
-Copyright (C) 2015-present BigCommerce Inc.
-All rights reserved.
+        utils.api.cart.getContent(options, onComplete);
+    }
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+    updateCartContent(modal, cartItemId, onComplete) {
+        this.getCartContent(cartItemId, (err, response) => {
+            if (err) {
+                return;
+            }
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+            modal.updateContent(response);
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+            // Update cart counter
+            const $body = $('body');
+            const $cartQuantity = $('[data-cart-quantity]', modal.$content);
+            const $cartCounter = $('.navUser-action .cart-count');
+            const quantity = $cartQuantity.data('cartQuantity') || 0;
+            const $promotionBanner = $('[data-promotion-banner]');
+            const $backToShopppingBtn = $('.previewCartCheckout > [data-reveal-close]');
+            const $modalCloseBtn = $('#previewModal > .modal-close');
+            const bannerUpdateHandler = () => {
+                const $productContainer = $('#main-content > .container');
+
+                $productContainer.append('<div class="loadingOverlay pdp-update"></div>');
+                $('.loadingOverlay.pdp-update', $productContainer).show();
+                window.location.reload();
+            };
+
+            $cartCounter.addClass('cart-count--positive');
+            $body.trigger('cart-quantity-update', quantity);
+
+            if (onComplete) {
+                onComplete(response);
+            }
+
+            if ($promotionBanner.length && $backToShopppingBtn.length) {
+                $backToShopppingBtn.on('click', bannerUpdateHandler);
+                $modalCloseBtn.on('click', bannerUpdateHandler);
+            }
+        });
+    }
+    
+Finally to hide and show the Remove Cart button i added a script tag underneath the buttons in category.html
+
+ <!-- Hides and shows remove button on click -->
+  <script>
+    const atc = document.getElementById('add-all-to-cart')
+    const remove = document.getElementById('remove-all-from-cart')
+    atc.addEventListener('click', () => {
+      remove.style.display = 'flex'
+    })
+
+    
+  And that's all! It was a little difficult at first but after re-reading the documentation and hard work I completed the tasks! 
