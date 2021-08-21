@@ -1,0 +1,14 @@
+{
+  "customLayouts": {
+    "brand": {},
+    "category": {
+      "custom-category": "/custom-widget-templates/"
+    },
+    "page": {},
+    "product": {
+      "product-special": "/special-product/"
+    }
+  },
+  "normalStoreUrl": "https://kaseysdemo.mybigcommerce.com/",
+  "port": "3000"
+}

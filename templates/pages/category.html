@@ -1,0 +1,71 @@
+---
+category:
+  shop_by_price: true
+  products:
+    limit: { { theme_settings.categorypage_products_per_page } }
+---
+
+{{inject "categoryProductsPerPage"
+theme_settings.categorypage_products_per_page}} {{inject "categoryId"
+category.id}}
+</script>
+{{#partial "head"}} {{#if pagination.category.previous}}
+<link rel="prev" href="{{pagination.category.previous}}" />
+{{/if}} {{#if pagination.category.next}}
+<link rel="next" href="{{pagination.category.next}}" />
+{{/if}} {{/partial}} {{#partial "page"}} {{> components/common/breadcrumbs
+breadcrumbs=breadcrumbs}} {{#if category.image}} {{>
+components/common/responsive-img image=category.image
+fallback_size=theme_settings.zoom_size lazyload=theme_settings.lazyload_mode
+class="category-header-image" }} {{/if}} {{#unless
+theme_settings.hide_category_page_heading }}
+<h1 class="page-heading">{{category.name}}</h1>
+{{{region name="category_special"}}} {{/unless}} {{{category.description}}}
+<div class="page">
+
+  <!--Add to cart feature-->
+  <div id="previewModal" class="modal modal--large" data-reveal>
+    {{> components/common/modal/modal-close-btn }}
+    <div class="modal-content"></div>
+    <div class="loadingOverlay"></div>
+  </div>
+
+  <!--Add and Remove to cart buttons-->
+  <button class="add-to-cart-button" id="add-all-to-cart">Add all to cart</button>
+  <button class="remove-all-cart-bttn" id="remove-all-from-cart">Remove All Items</button>
+
+  <!-- Hides and shows remove button on click -->
+  <script>
+    const atc = document.getElementById('add-all-to-cart')
+    const remove = document.getElementById('remove-all-from-cart')
+    atc.addEventListener('click', () => {
+      remove.style.display = 'flex'
+    })
+
+    remove.addEventListener('click', () => {
+      remove.style.display = 'none'
+    })
+  </script>
+
+  {{#if category.faceted_search_enabled}}
+  <aside class="page-sidebar" id="faceted-search-container">
+    {{> components/category/sidebar}}+
+  </aside>
+  {{else if category.subcategories}}
+  <aside class="page-sidebar" id="faceted-search-container">
+    {{> components/category/sidebar}}
+  </aside>
+  {{else if category.shop_by_price}} {{#if
+  theme_settings.shop_by_price_visibility}}
+  <aside class="page-sidebar" id="faceted-search-container">
+    {{> components/category/sidebar}}
+  </aside>
+  {{/if}} {{/if}}
+
+  <div class="page-content" id="product-listing-container">
+    {{> components/category/product-listing}} {{{region
+    name="category_special"}}}
+  </div>
+</div>
+
+{{/partial}} {{> layout/base}}
